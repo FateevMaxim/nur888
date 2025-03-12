@@ -192,23 +192,15 @@ class ProductController extends Controller
             // Загружаем файл с помощью PhpSpreadsheet
             $spreadsheet = IOFactory::load($fullPath);
 
-            // Очищаем пустые строки
             foreach ($spreadsheet->getAllSheets() as $sheet) {
                 logger()->info("Total rows: " . $sheet->getHighestRow());
                 $highestRow = $sheet->getHighestDataRow();
-                $highestColumn = $sheet->getHighestDataColumn();
 
-                // Удаляем пустые строки
-                for ($row = 1; $row <= $highestRow; $row++) {
-                    $isEmpty = true;
-                    for ($col = 'A'; $col <= $highestColumn; $col++) {
-                        if (trim((string) $sheet->getCell($col . $row)->getValue()) !== '') {
-                            $isEmpty = false;
-                            break;
-                        }
-                    }
-                    if ($isEmpty) {
-                        $sheet->removeRow($row);
+                // Проверяем строки на наличие значений в столбце B
+                for ($row = $highestRow; $row >= 1; $row--) { // Идем с конца, чтобы избежать сдвигов
+                    $cellValue = $sheet->getCell('B' . $row)->getValue();
+                    if (is_null($cellValue) || trim($cellValue) === '') {
+                        $sheet->removeRow($row); // Удаляем строку, если значение в столбце B равно null или пусто
                     }
                 }
             }
@@ -230,6 +222,7 @@ class ProductController extends Controller
 
         return back()->with('error', 'Файл не был загружен.');
     }
+
 
     public function result ()
     {
