@@ -50,7 +50,7 @@ class TracksImport implements ToModel, SkipsOnError, SkipsEmptyRows, WithChunkRe
 
     public function chunkSize(): int
     {
-        return 50;
+        return 20;
     }
 
 }
