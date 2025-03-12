@@ -34,7 +34,7 @@ class TracksImport implements ToModel, SkipsOnError, SkipsEmptyRows, WithChunkRe
     public function model(array $row)
     {
         \Log::info('Processing row: ', $row);
-        if (trim($row[1]) !== '') {
+        if (trim($row[1]) !== '' && $row != null) {
             return TrackList::updateOrCreate(
                 [
                     'track_code' => $row[1],
