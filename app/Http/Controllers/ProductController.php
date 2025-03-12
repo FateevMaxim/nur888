@@ -199,7 +199,7 @@ class ProductController extends Controller
                 $highestColumn = $sheet->getHighestDataColumn();
 
                 // Удаляем пустые строки
-                for ($row = $highestRow; $row >= 1; $row--) {
+                for ($row = 1; $row <= $highestRow; $row++) {
                     $isEmpty = true;
                     for ($col = 'A'; $col <= $highestColumn; $col++) {
                         if (trim((string) $sheet->getCell($col . $row)->getValue()) !== '') {
