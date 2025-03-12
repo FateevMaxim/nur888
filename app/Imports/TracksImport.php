@@ -4,8 +4,10 @@ namespace App\Imports;
 
 use App\Models\TrackList;
 use Maatwebsite\Excel\Concerns\Importable;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
 
 class TracksImport implements ToModel, SkipsOnError, SkipsEmptyRows, WithChunkReading
 {
@@ -50,7 +52,7 @@ class TracksImport implements ToModel, SkipsOnError, SkipsEmptyRows, WithChunkRe
 
     public function chunkSize(): int
     {
-        return 20;
+        return 30;
     }
 
 }
