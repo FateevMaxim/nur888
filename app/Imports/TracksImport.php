@@ -7,7 +7,7 @@ use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
 use Maatwebsite\Excel\Concerns\ToModel;
 
-class TracksImport implements ToModel, SkipsOnError
+class TracksImport implements ToModel, SkipsOnError, SkipsEmptyRows, WithChunkReading
 {
 
     use Importable;
@@ -31,12 +31,26 @@ class TracksImport implements ToModel, SkipsOnError
     */
     public function model(array $row)
     {
-        return new TrackList([
-            'track_code' => $row[0],
-            'to_china' => $this->date,
-            'status' => 'Получено в Китае',
-            'reg_china' => 1,
-            'created_at' => date(now()),
-        ]);
+        \Log::info('Processing row: ', $row);
+        if (trim($row[1]) !== '') {
+            return TrackList::updateOrCreate(
+                [
+                    'track_code' => $row[1],
+                ],
+                [
+
+                    'to_china' => $this->date,
+                    'status' => 'Получено в Китае',
+                    'reg_china' => 1,
+                    'created_at' => date(now()),
+                ]
+            );
+        }
     }
+
+    public function chunkSize(): int
+    {
+        return 50;
+    }
+
 }

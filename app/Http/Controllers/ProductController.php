@@ -11,8 +11,10 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ProductController extends Controller
 {
@@ -178,8 +180,54 @@ class ProductController extends Controller
 
     public function fileImport(Request $request)
     {
-        Excel::import(new TracksImport($request['date']), $request->file('file')->store('temp'));
-        return back();
+        // Увеличиваем лимит памяти
+        ini_set('memory_limit', '512M');
+
+        if ($request->hasFile('file')) {
+            // Сохраняем файл во временное хранилище
+            $filePath = $request->file('file')->store('temp');
+            $fullPath = storage_path('app/' . $filePath);
+
+            // Загружаем файл с помощью PhpSpreadsheet
+            $spreadsheet = IOFactory::load($fullPath);
+
+            // Очищаем пустые строки
+            foreach ($spreadsheet->getAllSheets() as $sheet) {
+                logger()->info("Total rows: " . $sheet->getHighestRow());
+                $highestRow = $sheet->getHighestDataRow();
+                $highestColumn = $sheet->getHighestDataColumn();
+
+                // Удаляем пустые строки
+                for ($row = $highestRow; $row >= 1; $row--) {
+                    $isEmpty = true;
+                    for ($col = 'A'; $col <= $highestColumn; $col++) {
+                        if (trim((string) $sheet->getCell($col . $row)->getValue()) !== '') {
+                            $isEmpty = false;
+                            break;
+                        }
+                    }
+                    if ($isEmpty) {
+                        $sheet->removeRow($row);
+                    }
+                }
+            }
+
+            // Сохраняем очищенный файл
+            $cleanedFilePath = storage_path('app/temp/cleaned_' . $request->file('file')->getClientOriginalName());
+            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->save($cleanedFilePath);
+
+            // Импортируем очищенный файл
+            Excel::import(new TracksImport($request['date']), 'temp/cleaned_' . $request->file('file')->getClientOriginalName());
+
+            // Удаляем временные файлы (опционально)
+            Storage::delete($filePath);
+            Storage::delete('temp/cleaned_' . $request->file('file')->getClientOriginalName());
+
+            return back()->with('success', 'Файл успешно импортирован.');
+        }
+
+        return back()->with('error', 'Файл не был загружен.');
     }
 
     public function result ()
