@@ -182,6 +182,7 @@ class ProductController extends Controller
     {
         // Увеличиваем лимит памяти
         ini_set('memory_limit', '512M');
+        ini_set('max_execution_time', 60);
 
         if ($request->hasFile('file')) {
             // Сохраняем файл во временное хранилище
