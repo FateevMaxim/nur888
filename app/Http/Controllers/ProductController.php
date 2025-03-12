@@ -182,7 +182,7 @@ class ProductController extends Controller
     {
         // Увеличиваем лимит памяти
         ini_set('memory_limit', '512M');
-        ini_set('max_execution_time', 100);
+        ini_set('max_execution_time', 120); // Увеличиваем время выполнения
 
         if ($request->hasFile('file')) {
             // Сохраняем файл во временное хранилище
@@ -191,45 +191,37 @@ class ProductController extends Controller
 
             // Загружаем файл с помощью PhpSpreadsheet
             $spreadsheet = IOFactory::load($fullPath);
+            $sheet = $spreadsheet->getActiveSheet();
 
-            // Очищаем пустые строки
-            foreach ($spreadsheet->getAllSheets() as $sheet) {
-                logger()->info("Total rows: " . $sheet->getHighestRow());
-                $highestRow = $sheet->getHighestDataRow();
-                $highestColumn = $sheet->getHighestDataColumn();
+            // Массив для хранения данных из второго столбца
+            $secondColumnData = [];
 
-                // Удаляем пустые строки
-                for ($row = 1; $row <= $highestRow; $row++) {
-                    $isEmpty = true;
-                    for ($col = 'A'; $col <= $highestColumn; $col++) {
-                        if (trim((string) $sheet->getCell($col . $row)->getValue()) !== '') {
-                            $isEmpty = false;
-                            break;
-                        }
-                    }
-                    if ($isEmpty) {
-                        $sheet->removeRow($row);
-                    }
+            // Получаем количество строк с данными
+            $highestRow = $sheet->getHighestDataRow(); // Определяет последнюю строку с данными
+
+            // Итерация по строкам второго столбца
+            for ($row = 1; $row <= $highestRow; $row++) {
+                $cellValue = $sheet->getCell('B' . $row)->getValue(); // Читаем значения из второго столбца
+                if (!empty($cellValue)) {
+                    $secondColumnData[] = $cellValue; // Сохраняем непустые значения
                 }
             }
 
-            // Сохраняем очищенный файл
-            $cleanedFilePath = storage_path('app/temp/cleaned_' . $request->file('file')->getClientOriginalName());
-            $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
-            $writer->save($cleanedFilePath);
+            // Теперь вы можете обработать данные из $secondColumnData
+            foreach ($secondColumnData as $value) {
+                \Log::info('Processing value: ' . $value);
+                // Ваши операции с каждым значением столбца
+            }
 
-            // Импортируем очищенный файл
-            Excel::import(new TracksImport($request['date']), 'temp/cleaned_' . $request->file('file')->getClientOriginalName());
-
-            // Удаляем временные файлы (опционально)
+            // Удаляем временный файл
             Storage::delete($filePath);
-            Storage::delete('temp/cleaned_' . $request->file('file')->getClientOriginalName());
 
-            return back()->with('success', 'Файл успешно импортирован.');
+            return back()->with('success', 'Файл успешно обработан.');
         }
 
         return back()->with('error', 'Файл не был загружен.');
     }
+
 
     public function result ()
     {
